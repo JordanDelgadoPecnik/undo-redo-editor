@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>undo-redo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <h1>Editor</h1>
+
+    <div class="editor-wrapper">
+        <input type="text" placeholder="Write something..." name="textInput" id="textInput">
+        <div class="buttons">
+            <button id="undoBtn" type="button">Undo <span>Ctrl+Z</span></button>
+            <button id="redoBtn" type="button">Redo <span>Ctrl+Y</span></button>
+            <button id="clearBtn">Clear</button>
+            <button id="saveBtn" type="button">Save</button>
+        </div>
+    </div>
+
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <input type="text" id="saveText" placeholder="Name this version">
+            <button id="confirmBtn">Save</button>
+            <button id="closeModal">X</button>
+            <p id="errorMsg" class="hidden">This version name already exists</p>
+        </div>
+
+    </div>
+
+    <div id="versionsContainer">
+        <h3>Saved Versions</h3>
+        <ul id="versionsList"></ul>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
