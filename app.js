@@ -1,3 +1,4 @@
+// ===== DOM =====
 const undoBtn = document.getElementById("undoBtn")
 const redoBtn = document.getElementById("redoBtn")
 const textInput = document.getElementById("textInput")
@@ -8,71 +9,25 @@ const confirmBtn = document.getElementById("confirmBtn")
 const versionsList = document.getElementById("versionsList")
 const errorMsg = document.getElementById("errorMsg")
 const clearBtn = document.getElementById("clearBtn")
-const closeModal = document.getElementById("closeModal")
+const closeModalBtn = document.getElementById("closeModal")
 
+
+// ===== ESTADO =====
 let undoStack = []
 let redoStack = []
 
-textInput.addEventListener("input", () => {
+
+// ===== UTILIDADES =====
+function isEmpty(value) {
+    return value.trim() === ""
+}
+
+
+// ===== HISTORIAL (undo / redo) =====
+function recordChange() {
     undoStack.push(textInput.value)
     redoStack = []
-})
-
-undoBtn.addEventListener("click", () => {
-    undo()
-})
-
-redoBtn.addEventListener("click", () => {
-    redo()
-})
-
-clearBtn.addEventListener("click", () => {
-    textInput.value = ""
-    undoStack = []
-    redoStack = []
-})
-
-saveBtn.addEventListener("click", () => {
-    if (textInput.value.trim() === "") return
-    modal.classList.remove("hidden")
-})
-
-saveText.addEventListener("input", () => {
-    errorMsg.classList.add("hidden")
-})
-
-closeModal.addEventListener("click", () => {
-    modal.classList.add("hidden")
-})
-
-confirmBtn.addEventListener("click", () => {
-    if (saveText.value.trim() === "") return
-    const versionName = saveText.value
-    const version = {
-        name: versionName,
-        text: textInput.value
-    }
-    let versions = JSON.parse(localStorage.getItem("savedVersions")) || []
-    const duplicated = versions.some(v => v.name === versionName)
-    if (duplicated) return errorMsg.classList.remove("hidden")
-    versions.push(version)
-    localStorage.setItem("savedVersions", JSON.stringify(versions))
-    modal.classList.add("hidden")
-    saveText.value = ""
-    displayVersions()
-
-})
-
-document.addEventListener("keydown", (event) => {
-    if (event.ctrlKey && event.key === "z") {
-        event.preventDefault()
-        undo()
-    }
-    if (event.ctrlKey && event.key === "y") {
-        event.preventDefault()
-        redo()
-    }
-})
+}
 
 function undo() {
     if (undoStack.length === 0) return
@@ -88,25 +43,167 @@ function redo() {
     textInput.value = lastState || ""
 }
 
+function clearInput() {
+    textInput.value = ""
+    undoStack = []
+    redoStack = []
+}
+
+
+// ===== VERSIONES (datos) =====
+function getVersions() {
+    return JSON.parse(localStorage.getItem("savedVersions")) || []
+}
+
+function saveVersions(versions) {
+    localStorage.setItem("savedVersions", JSON.stringify(versions))
+}
+
+function createVersion(name, text) {
+    return {
+        name,
+        text
+    }
+}
+
+function addVersion(version) {
+    const versions = getVersions()
+    versions.push(version)
+    saveVersions(versions)
+}
+
+function deleteVersion(versionName) {
+    saveVersions(getVersions().filter(version => version.name !== versionName))
+}
+
+function isNameDuplicated(value) {
+    const versions = getVersions()
+    return versions.some(v => v.name.toLowerCase() === value.toLowerCase())
+}
+
+function loadVersion(version) {
+    textInput.value = version.text
+    recordChange()
+}
+
+
+// ===== MODAL =====
+function openModal() {
+    if (isEmpty(textInput.value)) return
+    modal.classList.remove("hidden")
+}
+
+function closeModal() {
+    modal.classList.add("hidden")
+    resetModal()
+}
+
+function resetModal() {
+    saveText.value = ""
+    hideErrorMsg()
+}
+
+function showErrorMsg() {
+    errorMsg.classList.remove("hidden")
+}
+
+function hideErrorMsg() {
+    errorMsg.classList.add("hidden")
+}
+
+
+// ===== PINTAR LA LISTA =====
+function createDeleteBtn() {
+    const removeBtn = document.createElement("button")
+    removeBtn.textContent = "X"
+    removeBtn.classList.add("deleteBtn")
+    return removeBtn
+}
+
+function createVersionItem(version) {
+    const newLi = document.createElement("li")
+    newLi.textContent = `version: ${version.name}`
+    const removeBtn = createDeleteBtn()
+    newLi.appendChild(removeBtn)
+    return newLi
+}
+
 function displayVersions() {
     versionsList.innerHTML = ""
-    const versions = JSON.parse(localStorage.getItem("savedVersions")) || []
-    versions.forEach(element => {
-        const newLi = document.createElement("li")
-        newLi.innerHTML = `version: ${element.name} <button class="deleteBtn">X</button>`
+    getVersions().forEach(version => {
+        const newLi = createVersionItem(version)
         const deleteBtn = newLi.querySelector(".deleteBtn")
         deleteBtn.addEventListener("click", (event) => {
             event.stopPropagation()
-            let versions = JSON.parse(localStorage.getItem("savedVersions")) || []
-            const deletedVersions = versions.filter(deleted => deleted.name !== element.name)
-            localStorage.setItem("savedVersions", JSON.stringify(deletedVersions))
+            deleteVersion(version.name)
             displayVersions()
         })
         versionsList.appendChild(newLi)
         newLi.addEventListener("click", () => {
-            textInput.value = element.text
+            loadVersion(version)
         })
-    });
+    })
 }
 
+
+// ===== EVENT LISTENERS: EDITOR =====
+textInput.addEventListener("input", () => {
+    recordChange()
+})
+
+undoBtn.addEventListener("click", () => {
+    undo()
+})
+
+redoBtn.addEventListener("click", () => {
+    redo()
+})
+
+clearBtn.addEventListener("click", () => {
+    clearInput()
+})
+
+document.addEventListener("keydown", (event) => {
+    if (event.ctrlKey && event.key === "z") {
+        event.preventDefault()
+        undo()
+    }
+    if (event.ctrlKey && event.key === "y") {
+        event.preventDefault()
+        redo()
+    }
+})
+
+
+// ===== EVENT LISTENERS: MODAL =====
+saveBtn.addEventListener("click", () => {
+    openModal()
+})
+
+saveText.addEventListener("input", () => {
+    hideErrorMsg()
+})
+
+closeModalBtn.addEventListener("click", () => {
+    closeModal()
+})
+
+confirmBtn.addEventListener("click", () => { 
+    const versionName = saveText.value.trim()
+    if (isEmpty(versionName)) return
+    if (isNameDuplicated(versionName)) return showErrorMsg()
+    const version = createVersion(versionName, textInput.value)
+    addVersion(version)
+    closeModal()
+    displayVersions()
+})
+
+
+// ===== INICIO =====
 displayVersions()
+
+
+
+
+
+
